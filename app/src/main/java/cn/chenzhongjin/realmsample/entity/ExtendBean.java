@@ -1,6 +1,7 @@
 package cn.chenzhongjin.realmsample.entity;
 
 import io.realm.RealmObject;
+import io.realm.annotations.Required;
 
 /**
  * @author chenzj
@@ -11,7 +12,9 @@ import io.realm.RealmObject;
  */
 public class ExtendBean extends RealmObject {
 
+    @Required
     public String key;
+    @Required
     public String value;
 
     @Override

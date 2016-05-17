@@ -22,7 +22,7 @@ public class RealmManager {
     private static final String TAG = "RealmManager";
 
     private static RealmManager singleton;
-    private Realm mRealm;
+    private static Realm mRealm;
 
     public static RealmManager getInstanse() {
         if (singleton == null) {
@@ -39,7 +39,7 @@ public class RealmManager {
     public RealmManager() {
 
         RealmConfiguration config = new RealmConfiguration.Builder(AppContext.getInstance())
-                .schemaVersion(1)
+                .schemaVersion(2)
                 .name("sample.realm")
                 .modules(new CustomModule())
                 .migration(mRealmMigration)
@@ -47,7 +47,10 @@ public class RealmManager {
         mRealm = Realm.getInstance(config);
     }
 
-    public Realm getRealm() {
+    public static Realm getRealm() {
+        if (null == mRealm) {
+            getInstanse();
+        }
         return mRealm;
     }
 
@@ -93,10 +96,10 @@ public class RealmManager {
                         */
                 oldVersion++;
             }
+
         }
     };
 
-    // TODO: 2016/4/25 使用sample
     private void addData() {
         mRealm.beginTransaction();
 
@@ -132,7 +135,6 @@ public class RealmManager {
 
         User user = results.get(0);
         //change the field
-        user.age = 1;
 
         mRealm.commitTransaction();
     }

@@ -46,7 +46,7 @@
         />
 
     <info.hoang8f.android.segmented.SegmentedGroup
-        android:id="@+id/segmented"
+        android:id="@+id/sex_segmented"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_margin="10dp"
@@ -73,6 +73,53 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:text="女"/>
+    </info.hoang8f.android.segmented.SegmentedGroup>
+
+    <info.hoang8f.android.segmented.SegmentedGroup
+        android:id="@+id/education_segmented"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_margin="10dp"
+        android:orientation="horizontal"
+        segmentedgroup:sc_border_width="1dp"
+        segmentedgroup:sc_checked_text_color="#ff33b5e5"
+        segmentedgroup:sc_corner_radius="5dp"
+        segmentedgroup:sc_tint_color="#CDC5BF"
+        >
+
+        <RadioButton
+            android:id="@+id/high_school_rb"
+            style="@style/RadioButton"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="高中"
+            />
+
+        <RadioButton
+            android:id="@+id/junior_college_rb"
+            style="@style/RadioButton"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="大专"/>
+
+        <RadioButton
+            android:id="@+id/regular_college_course_rb"
+            style="@style/RadioButton"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="本科"
+            />
+
+        <RadioButton
+            android:id="@+id/master_rb"
+            style="@style/RadioButton"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="硕士"/>
     </info.hoang8f.android.segmented.SegmentedGroup>
 
 </LinearLayout>

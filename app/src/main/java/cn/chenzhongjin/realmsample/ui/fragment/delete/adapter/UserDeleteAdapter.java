@@ -17,11 +17,14 @@ import com.daimajia.swipe.SwipeLayout;
 import com.daimajia.swipe.adapters.RecyclerSwipeAdapter;
 import com.orhanobut.logger.Logger;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import cn.chenzhongjin.realmsample.R;
+import cn.chenzhongjin.realmsample.entity.ExtendBean;
 import cn.chenzhongjin.realmsample.entity.User;
 import cn.chenzhongjin.realmsample.listeners.CustomItemClickListener;
+import io.realm.RealmResults;
 
 
 /**
@@ -65,7 +68,14 @@ public class UserDeleteAdapter extends RecyclerSwipeAdapter<UserDeleteAdapter.Vi
         final User itemData = mData.get(position);
         holder.mNameTv.setText(String.format("姓名:%s", itemData.name));
         holder.mSexTv.setText(String.format("性别:%s", itemData.sex));
-        holder.mPhoneNumTv.setText(String.format("电话号码:%d", itemData.phoneNum));
+        holder.mPhoneNumTv.setText(String.format("电话号码:%s", itemData.phoneNum));
+
+        RealmResults<ExtendBean> realmResults = itemData.mExtendBeanRealmList.where().equalTo("key", "education").findAll();
+        if (realmResults.size() == 1) {
+            holder.mEducationTv.setText(String.format("学历:%s", realmResults.get(0).value));
+        } else {
+            holder.mEducationTv.setText(String.format("学历:%s", "無"));
+        }
 
         holder.mSwipeLayout.setShowMode(SwipeLayout.ShowMode.LayDown);
         holder.mSwipeLayout.addSwipeListener(new SimpleSwipeListener() {
@@ -95,6 +105,7 @@ public class UserDeleteAdapter extends RecyclerSwipeAdapter<UserDeleteAdapter.Vi
         TextView mNameTv;
         TextView mSexTv;
         TextView mPhoneNumTv;
+        TextView mEducationTv;
 
         public ViewHolder(View itemView, int viewType, CustomItemClickListener customItemClickListener) {
             super(itemView);
@@ -104,6 +115,7 @@ public class UserDeleteAdapter extends RecyclerSwipeAdapter<UserDeleteAdapter.Vi
             mNameTv = (TextView) itemView.findViewById(R.id.user_info_name);
             mSexTv = (TextView) itemView.findViewById(R.id.user_info_sex);
             mPhoneNumTv = (TextView) itemView.findViewById(R.id.user_info_phone_number);
+            mEducationTv = (TextView) itemView.findViewById(R.id.user_info_education);
             mSwipeLayout = (SwipeLayout) itemView.findViewById(R.id.userinfo_swipe_layout);
             mDelImv = (ImageView) itemView.findViewById(R.id.trash);
 
@@ -132,6 +144,11 @@ public class UserDeleteAdapter extends RecyclerSwipeAdapter<UserDeleteAdapter.Vi
         notifyItemRemoved(position);
     }
 
+    public void update(List<User> userList) {
+        mData.addAll(userList);
+        notifyDataSetChanged();
+    }
+
     public void clear() {
         int size = mData.size();
         mData.clear();
@@ -156,6 +173,10 @@ public class UserDeleteAdapter extends RecyclerSwipeAdapter<UserDeleteAdapter.Vi
         } else {
             Logger.t(TAG).i("chatMsgs addall is null or size = 0");
         }
+    }
+
+    public List<User> getData() {
+        return null == mData ? new ArrayList<User>() : mData;
     }
 
 

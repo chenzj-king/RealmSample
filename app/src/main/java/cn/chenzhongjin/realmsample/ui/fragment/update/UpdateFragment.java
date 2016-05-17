@@ -9,22 +9,31 @@ import android.widget.EditText;
 
 import com.afollestad.materialdialogs.DialogAction;
 import com.afollestad.materialdialogs.MaterialDialog;
-import com.orhanobut.logger.Logger;
 
+import org.greenrobot.eventbus.EventBus;
 import org.greenrobot.eventbus.Subscribe;
 import org.greenrobot.eventbus.ThreadMode;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import butterknife.ButterKnife;
 import cn.chenzhongjin.realmsample.R;
+import cn.chenzhongjin.realmsample.database.RealmManager;
+import cn.chenzhongjin.realmsample.entity.ExtendBean;
 import cn.chenzhongjin.realmsample.entity.User;
-import cn.chenzhongjin.realmsample.eventbus.UserUpdateEvent;
+import cn.chenzhongjin.realmsample.eventbus.DeleteEvent;
+import cn.chenzhongjin.realmsample.eventbus.InsertEvent;
+import cn.chenzhongjin.realmsample.eventbus.SelectEvent;
+import cn.chenzhongjin.realmsample.eventbus.UpdateEvent;
 import cn.chenzhongjin.realmsample.listeners.CustomItemClickListener;
 import cn.chenzhongjin.realmsample.ui.activity.adapter.UserAdapter;
 import cn.chenzhongjin.realmsample.ui.base.BaseRvFragment;
 import cn.chenzhongjin.realmsample.utils.ValidateUtils;
 import info.hoang8f.android.segmented.SegmentedGroup;
+import io.realm.Realm;
+import io.realm.RealmChangeListener;
+import io.realm.RealmResults;
 
 /**
  * @author chenzj
@@ -37,12 +46,13 @@ public class UpdateFragment extends BaseRvFragment {
 
     private static final String TAG = UpdateFragment.class.getSimpleName();
 
-    private List<User> mUserList;
+    private List<User> mUsers;
     private UserAdapter mAdapter;
 
     private EditText mNameEt;
     private EditText mPhoneNumEt;
-    private SegmentedGroup mSegmentedGroup;
+    private SegmentedGroup mSexSg;
+    private SegmentedGroup mEducationSg;
 
     @Override
     protected boolean isRegisterEvent() {
@@ -64,8 +74,10 @@ public class UpdateFragment extends BaseRvFragment {
     protected void initViews(View view) {
         ButterKnife.bind(this, view);
 
+        mUsers = new ArrayList<>();
+
         //init cache data
-        mAdapter = new UserAdapter(mUserList, new CustomItemClickListener() {
+        mAdapter = new UserAdapter(mUsers, new CustomItemClickListener() {
             @Override
             public void onItemClick(View view, int position) {
                 showUpdateDialog(mAdapter.getItemData(position), position);
@@ -74,6 +86,26 @@ public class UpdateFragment extends BaseRvFragment {
         mRecycler.setAdapter(mAdapter);
         mRecycler.setRefreshListener(this);
         mAdapter.notifyDataSetChanged();
+        selectData();
+    }
+
+    private void selectData() {
+        mAdapter.clear();
+        Realm realm = RealmManager.getRealm();
+
+        RealmResults<User> userRealmResults = realm.where(User.class).findAll();
+        for (User user : userRealmResults) {
+            mAdapter.add(user);
+        }
+        userRealmResults.addChangeListener(new RealmChangeListener<RealmResults<User>>() {
+            @Override
+            public void onChange(RealmResults<User> element) {
+                mAdapter.clear();
+                for (User user : element) {
+                    mAdapter.add(user);
+                }
+            }
+        });
     }
 
     @Override
@@ -81,7 +113,8 @@ public class UpdateFragment extends BaseRvFragment {
         getHandler().post(new Runnable() {
             @Override
             public void run() {
-
+                selectData();
+                EventBus.getDefault().post(new UpdateEvent(mAdapter.getData()));
             }
         });
     }
@@ -105,7 +138,23 @@ public class UpdateFragment extends BaseRvFragment {
                     public void onClick(@NonNull MaterialDialog dialog, @NonNull DialogAction which) {
                         String nameStr = mNameEt.getText().toString();
                         String phoneNumStr = mPhoneNumEt.getText().toString();
-                        String sexStr = mSegmentedGroup.getCheckedRadioButtonId() == R.id.radio_button_man ? "男" : "女";
+                        String sexStr = mSexSg.getCheckedRadioButtonId() == R.id.radio_button_man ? "男" : "女";
+                        String educationStr = "";
+
+                        switch (mEducationSg.getCheckedRadioButtonId()) {
+                            case R.id.high_school_rb:
+                                educationStr = "高中";
+                                break;
+                            case R.id.junior_college_rb:
+                                educationStr = "大专";
+                                break;
+                            case R.id.regular_college_course_rb:
+                                educationStr = "本科";
+                                break;
+                            case R.id.master_rb:
+                                educationStr = "硕士";
+                                break;
+                        }
 
                         if (TextUtils.isEmpty(nameStr)) {
                             mNameEt.setError(getString(R.string.input_name_error));
@@ -115,51 +164,104 @@ public class UpdateFragment extends BaseRvFragment {
                             mPhoneNumEt.setError(getString(R.string.input_phone_num_error));
                             return;
                         }
+                        if (TextUtils.isEmpty(educationStr)) {
+                            showToast("请选择学历!");
+                            return;
+                        }
 
-                        if (nameStr.equals(user.name) && phoneNumStr.equals(String.valueOf(user.phoneNum))
-                                && sexStr.equals(user.sex)) {
+                        RealmResults<ExtendBean> realmResults = user.mExtendBeanRealmList.where()
+                                .equalTo("key", "education")
+                                .findAll();
+
+                        String oldEduction = "";
+                        if (realmResults.size() == 1) {
+                            oldEduction = realmResults.get(0).value;
+                        }
+
+                        if (nameStr.equals(user.name) && phoneNumStr.equals(user.phoneNum)
+                                && sexStr.equals(user.sex) && educationStr.equals(oldEduction)) {
                             showToast("没有修改任何内容,请修改后再进行提交!");
                             return;
                         }
 
-                        //update message
-                        User mNewUser = user;
+                        Realm realm = RealmManager.getRealm();
+                        realm.beginTransaction();
 
+                        user.name = nameStr;
+                        user.phoneNum = phoneNumStr;
+                        user.sex = sexStr;
 
-                        //refresh ui
-                        mAdapter.remove(position);
-                        mAdapter.insert(mNewUser, position);
+                        if (realmResults.size() == 0) {
+                            ExtendBean extendBean = realm.createObject(ExtendBean.class);
+                            extendBean.key = "education";
+                            extendBean.value = educationStr;
+                            user.mExtendBeanRealmList.add(extendBean);
+                        } else if (realmResults.size() == 1) {
+                            realmResults.get(0).value = educationStr;
+                        }
+                        realm.commitTransaction();
 
                         dialog.dismiss();
-
+                        onRefresh();
                     }
                 }).build();
 
         mNameEt = (EditText) dialog.getCustomView().findViewById(R.id.name);
         mPhoneNumEt = (EditText) dialog.getCustomView().findViewById(R.id.phone_number);
-        mSegmentedGroup = (SegmentedGroup) dialog.getCustomView().findViewById(R.id.segmented);
+        mSexSg = (SegmentedGroup) dialog.getCustomView().findViewById(R.id.sex_segmented);
+        mEducationSg = (SegmentedGroup) dialog.getCustomView().findViewById(R.id.education_segmented);
 
         //init data
         mNameEt.setText(user.name);
         mPhoneNumEt.setText(String.valueOf(user.phoneNum));
         boolean isMan = user.sex.equals("男");
         if (isMan) {
-            mSegmentedGroup.check(R.id.radio_button_man);
+            mSexSg.check(R.id.radio_button_man);
         } else {
-            mSegmentedGroup.check(R.id.radio_button_woman);
+            mSexSg.check(R.id.radio_button_woman);
         }
+
+        RealmResults<ExtendBean> realmResults = user.mExtendBeanRealmList.where()
+                .equalTo("key", "education")
+                .findAll();
+        if (realmResults.size() == 1) {
+            switch (realmResults.get(0).value) {
+                case "高中":
+                    mEducationSg.check(R.id.high_school_rb);
+                    break;
+                case "大专":
+                    mEducationSg.check(R.id.junior_college_rb);
+                    break;
+                case "本科":
+                    mEducationSg.check(R.id.regular_college_course_rb);
+                    break;
+                case "硕士":
+                    mEducationSg.check(R.id.master_rb);
+                    break;
+            }
+        }
+
         dialog.show();
+    }
+
+    @Subscribe(threadMode = ThreadMode.MAIN)
+    void loadLatestData(InsertEvent userDataEvent) {
+        loadLatestData(userDataEvent.mUsers);
+    }
+
+    @Subscribe(threadMode = ThreadMode.MAIN)
+    void loadLatestData(DeleteEvent userDataEvent) {
+        loadLatestData(userDataEvent.mUsers);
+    }
+
+    @Subscribe(threadMode = ThreadMode.MAIN)
+    void loadLatestData(SelectEvent userDataEvent) {
+        loadLatestData(userDataEvent.mUsers);
     }
 
     void loadLatestData(List<User> users) {
         mAdapter.clear();
         mAdapter.addAll(users);
-    }
-
-    @Subscribe(threadMode = ThreadMode.MAIN)
-    void loadLatestData(UserUpdateEvent userDataEvent) {
-        Logger.t(TAG).i("revice loadLatestData event");
-        loadLatestData(userDataEvent.mUsers);
     }
 }
 

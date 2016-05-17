@@ -6,16 +6,17 @@ import cn.chenzhongjin.realmsample.entity.User;
 
 /**
  * @author chenzj
- * @Title: UserUpdateEvent
+ * @Title: InsertEvent
  * @Description: 类的描述 -
- * @date 2016/5/16 22:45
+ * @date
  * @email admin@chenzhongjin.cn
  */
-public class UserUpdateEvent {
+public class InsertEvent {
 
     public List<User> mUsers;
 
-    public UserUpdateEvent(List<User> users) {
+    public InsertEvent(List<User> users) {
         mUsers = users;
     }
 }
+

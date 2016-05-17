@@ -8,11 +8,14 @@ import android.widget.TextView;
 
 import com.orhanobut.logger.Logger;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import cn.chenzhongjin.realmsample.R;
+import cn.chenzhongjin.realmsample.entity.ExtendBean;
 import cn.chenzhongjin.realmsample.entity.User;
 import cn.chenzhongjin.realmsample.listeners.CustomItemClickListener;
+import io.realm.RealmResults;
 
 /**
  * @author: chenzj
@@ -46,7 +49,14 @@ public class UserAdapter extends RecyclerView.Adapter<UserAdapter.ViewHolder> {
 
         holder.mNameTv.setText(String.format("姓名:%s", itemData.name));
         holder.mSexTv.setText(String.format("性别:%s", itemData.sex));
-        holder.mPhoneNumTv.setText(String.format("电话号码:%d", itemData.phoneNum));
+        holder.mPhoneNumTv.setText(String.format("电话号码:%s", itemData.phoneNum));
+
+        RealmResults<ExtendBean> realmResults = itemData.mExtendBeanRealmList.where().equalTo("key", "education").findAll();
+        if (realmResults.size() == 1) {
+            holder.mEducationTv.setText(String.format("学历:%s", realmResults.get(0).value));
+        } else {
+            holder.mEducationTv.setText(String.format("学历:%s", "無"));
+        }
     }
 
     @Override
@@ -64,6 +74,7 @@ public class UserAdapter extends RecyclerView.Adapter<UserAdapter.ViewHolder> {
         TextView mNameTv;
         TextView mSexTv;
         TextView mPhoneNumTv;
+        TextView mEducationTv;
 
         public ViewHolder(View itemView, int viewType, CustomItemClickListener customItemClickListener) {
             super(itemView);
@@ -73,6 +84,7 @@ public class UserAdapter extends RecyclerView.Adapter<UserAdapter.ViewHolder> {
             mNameTv = (TextView) itemView.findViewById(R.id.user_info_name);
             mSexTv = (TextView) itemView.findViewById(R.id.user_info_sex);
             mPhoneNumTv = (TextView) itemView.findViewById(R.id.user_info_phone_number);
+            mEducationTv = (TextView) itemView.findViewById(R.id.user_info_education);
 
             itemView.setOnClickListener(this);
         }
@@ -97,6 +109,11 @@ public class UserAdapter extends RecyclerView.Adapter<UserAdapter.ViewHolder> {
     public void remove(int position) {
         mData.remove(position);
         notifyItemRemoved(position);
+    }
+
+    public void update(List<User> userList) {
+        mData.addAll(userList);
+        notifyDataSetChanged();
     }
 
     public void clear() {
@@ -124,4 +141,7 @@ public class UserAdapter extends RecyclerView.Adapter<UserAdapter.ViewHolder> {
         }
     }
 
+    public List<User> getData() {
+        return null == mData ? new ArrayList<User>() : mData;
+    }
 }

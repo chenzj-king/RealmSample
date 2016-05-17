@@ -12,17 +12,16 @@ import io.realm.RealmObject;
  */
 public class User extends RealmObject {
 
-    public int age;
     public String sex;
     public String name;
-    public int phoneNum;
+    public String phoneNum;
 
     public RealmList<ExtendBean> mExtendBeanRealmList;
 
     @Override
     public String toString() {
         return "User{" +
-                "age=" + age +
+                "sex='" + sex + '\'' +
                 ", name='" + name + '\'' +
                 ", phoneNum='" + phoneNum + '\'' +
                 ", mExtendBeanRealmList=" + mExtendBeanRealmList +

@@ -7,22 +7,29 @@ import android.view.View;
 
 import com.afollestad.materialdialogs.DialogAction;
 import com.afollestad.materialdialogs.MaterialDialog;
-import com.daimajia.swipe.adapters.RecyclerSwipeAdapter;
 import com.daimajia.swipe.util.Attributes;
-import com.orhanobut.logger.Logger;
 
+import org.greenrobot.eventbus.EventBus;
 import org.greenrobot.eventbus.Subscribe;
 import org.greenrobot.eventbus.ThreadMode;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import butterknife.ButterKnife;
 import cn.chenzhongjin.realmsample.R;
+import cn.chenzhongjin.realmsample.database.RealmManager;
 import cn.chenzhongjin.realmsample.entity.User;
-import cn.chenzhongjin.realmsample.eventbus.UserUpdateEvent;
+import cn.chenzhongjin.realmsample.eventbus.DeleteEvent;
+import cn.chenzhongjin.realmsample.eventbus.InsertEvent;
+import cn.chenzhongjin.realmsample.eventbus.SelectEvent;
+import cn.chenzhongjin.realmsample.eventbus.UpdateEvent;
 import cn.chenzhongjin.realmsample.listeners.CustomItemClickListener;
 import cn.chenzhongjin.realmsample.ui.base.BaseRvFragment;
 import cn.chenzhongjin.realmsample.ui.fragment.delete.adapter.UserDeleteAdapter;
+import io.realm.Realm;
+import io.realm.RealmChangeListener;
+import io.realm.RealmResults;
 
 /**
  * @author chenzj
@@ -36,7 +43,7 @@ public class DeleteFragment extends BaseRvFragment {
     private static final String TAG = DeleteFragment.class.getSimpleName();
 
     private UserDeleteAdapter mAdapter;
-    private List<User> mUserList;
+    private List<User> mUsers;
 
     @Override
     protected boolean isRegisterEvent() {
@@ -58,8 +65,9 @@ public class DeleteFragment extends BaseRvFragment {
     protected void initViews(View view) {
         ButterKnife.bind(this, view);
         //init cache data
+        mUsers = new ArrayList<>();
 
-        mAdapter = new UserDeleteAdapter(mUserList, new CustomItemClickListener() {
+        mAdapter = new UserDeleteAdapter(mUsers, new CustomItemClickListener() {
             @Override
             public void onItemClick(View view, final int position) {
                 if (view.getId() == R.id.trash) {
@@ -69,18 +77,45 @@ public class DeleteFragment extends BaseRvFragment {
                                 @Override
                                 public void onClick(@NonNull MaterialDialog dialog, @NonNull DialogAction which) {
                                     if (which == DialogAction.POSITIVE) {
-                                        //del the data
+
+                                        Realm realm = RealmManager.getRealm();
+                                        realm.beginTransaction();
+                                        User delUser = mUsers.get(position);
+                                        delUser.deleteFromRealm();
+                                        realm.commitTransaction();
+
                                         dialog.dismiss();
+                                        onRefresh();
                                     }
                                 }
                             });
                 }
             }
         });
-        ((RecyclerSwipeAdapter) mAdapter).setMode(Attributes.Mode.Single);
+        mAdapter.setMode(Attributes.Mode.Single);
         mRecycler.setAdapter(mAdapter);
         mRecycler.setRefreshListener(this);
         mAdapter.notifyDataSetChanged();
+        selectData();
+    }
+
+    private void selectData() {
+        mAdapter.clear();
+        Realm realm = RealmManager.getRealm();
+
+        RealmResults<User> userRealmResults = realm.where(User.class).findAll();
+        for (User user : userRealmResults) {
+            mAdapter.add(user);
+        }
+        userRealmResults.addChangeListener(new RealmChangeListener<RealmResults<User>>() {
+            @Override
+            public void onChange(RealmResults<User> element) {
+                mAdapter.clear();
+                for (User user : element) {
+                    mAdapter.add(user);
+                }
+            }
+        });
     }
 
     @Override
@@ -88,20 +123,29 @@ public class DeleteFragment extends BaseRvFragment {
         getHandler().post(new Runnable() {
             @Override
             public void run() {
-
+                selectData();
+                EventBus.getDefault().post(new DeleteEvent(mAdapter.getData()));
             }
         });
     }
 
     void loadLatestData(List<User> userList) {
-
         mAdapter.clear();
         mAdapter.addAll(userList);
     }
 
     @Subscribe(threadMode = ThreadMode.MAIN)
-    void loadLatestData(UserUpdateEvent userDataEvent) {
-        Logger.t(TAG).i("revice loadLatestData event");
+    void loadLatestData(InsertEvent userDataEvent) {
+        loadLatestData(userDataEvent.mUsers);
+    }
+
+    @Subscribe(threadMode = ThreadMode.MAIN)
+    void loadLatestData(SelectEvent userDataEvent) {
+        loadLatestData(userDataEvent.mUsers);
+    }
+
+    @Subscribe(threadMode = ThreadMode.MAIN)
+    void loadLatestData(UpdateEvent userDataEvent) {
         loadLatestData(userDataEvent.mUsers);
     }
 }

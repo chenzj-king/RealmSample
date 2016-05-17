@@ -59,6 +59,14 @@
                 android:paddingBottom="5dp"
                 android:text="电话号码:"
                 />
+
+            <TextView
+                android:id="@+id/user_info_education"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:paddingBottom="5dp"
+                android:text="学历:"
+                />
         </LinearLayout>
     </com.daimajia.swipe.SwipeLayout>
 </android.support.v7.widget.CardView>
